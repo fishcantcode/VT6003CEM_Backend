@@ -1,15 +1,41 @@
-import { connect, set } from 'mongoose';
+import { Sequelize } from "sequelize";
+import dotenv from "dotenv";
 
-const MONGODB_URI = process.env.MONGODB_URI;
+dotenv.config();
 
-//db connection
-export const DBconnect = async () => {
+const sequelize = new Sequelize(
+  process.env.PGDATABASE as string,
+  process.env.PGUSER as string,
+  process.env.PGPASSWORD,
+  {
+    host: process.env.PGHOST,
+    port: Number(process.env.PGPORT) || 5432,
+    dialect: "postgres",
+    logging: process.env.NODE_ENV === "development" ? console.log : false,
+    pool: {
+      max: process.env.NODE_ENV === "production" ? 20 : 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+    define: {
+      timestamps: true,
+      underscored: true,
+      paranoid: true,
+      freezeTableName: true,
+    },
+  }
+);
+
+export const connectionTest = async () => {
   try {
-    set('strictQuery', false);
-    const db = await connect(MONGODB_URI as string);
-    console.log('MongoDB is connected to', db.connection.name);
+    await sequelize.authenticate();
+    console.log("Database connection success");
+    return true;
   } catch (error) {
-    console.error(error);
-
+    console.error("Database unable to connect, error:", error);
+    return false;
   }
 };
+
+export default sequelize;
