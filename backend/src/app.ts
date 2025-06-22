@@ -3,30 +3,29 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import helmet from 'helmet';
 import cors from 'cors';
-import bodyParser from 'body-parser';
-import cookieParser from 'cookie-parser';
 import {connectionTest} from './config/db.config';
+import authRoutes from './routes/auth';
 
 
 
-const app = express();
-const port = process.env.PORT || 3000;
+const createApp = () => {
+  const app = express();
 
-dotenv.config();
+  app.use(express.json());
+  app.use(morgan('dev'));
+  app.use(helmet());
+  app.use(cors());
 
-app.use(express.json());
-app.use(morgan('dev'));
-app.use(helmet())
-app.use(cors())
+  connectionTest();
 
-connectionTest();
+  // Routes
+  app.use('/api/auth', authRoutes);
 
-app.get('/', (req, res) => {
-  res.send('Hello!');
-});
-app.listen(port, () => {
-  console.log(`Server is running at http://localhost:${port}`);
-});
+  app.get('/', (req, res) => {
+    res.send('Hello!');
+  });
 
+  return app;
+};
 
-export default app;
+export default createApp;

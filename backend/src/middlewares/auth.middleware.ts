@@ -1,18 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { TokenVerifier } from '../services/auth.service';
-import { User } from '../models/user.model';
-
-import { UserAttributes } from '../models/user.model';
+import { User, UserAttributes } from '../models/user.model';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: UserAttributes;
+      user?: User;
     }
   }
 }
 
-export const authenticateToken = (req: Request, res: Response, next: NextFunction): void => {
+export interface AuthenticatedRequest extends Request {
+    user?: User;
+  }
+
+export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Expect "Bearer <token>"
 
@@ -22,8 +24,17 @@ export const authenticateToken = (req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const user = TokenVerifier(token);
-    req.user = user; // Attach user info to request object
+    const decoded = TokenVerifier(token) as UserAttributes;
+    if (!decoded || !decoded.id) {
+        res.status(403).json({ message: 'Invalid token payload' });
+        return;
+    }
+    const user = await User.findByPk(decoded.id);
+    if (!user) {
+        res.status(404).json({ message: 'User not found' });
+        return;
+    }
+    req.user = user; // Attach user instance to request object
     next();
   } catch (error) {
     res.status(403).json({ message: 'Invalid or expired token' });
@@ -46,4 +57,3 @@ export const requireRole = (role: 'user' | 'operator') => {
     next();
   };
 };
-

@@ -1,40 +1,45 @@
 import { DataTypes, Model, Optional } from "sequelize";
-import sequelize from "../config/db.config";
+import { sequelize } from "../config/db.config";
 
-export interface UserAttributes {
-  id: number;
-  username: string;
-  firstname: string;
-  lastname: string;
-  email: string;
-  password: string;
-  avatarImage?: string;
-  isEmployee: boolean;
-  role: "user" | "operator";
-  createdAt?: Date;
-  updatedAt?: Date;
+interface ProfileAttributes {
+  firstName?: string;
+  lastName?: string;
+  bio?: string;
 }
 
-interface UserCreationAttributes
-  extends Optional<
-    UserAttributes,
-    "id" | "avatarImage" | "role" | "createdAt" | "updatedAt"
-  > {}
+export interface UserAttributes {
+  id?: number;
+  username: string;
+  profile: ProfileAttributes;
+  email: string;
+  password?: string;
+  avatar?: Buffer;
+  avatarImage?: string;
+  isEmployee?: boolean;
+  role?: "user" | "operator";
+  createdAt?: Date;
+  updatedAt?: Date;
+  lastLoginAt?: Date;
+}
+
+interface UserCreationAttributes extends Optional<UserAttributes, "id"> {}
+
 export class User
-  extends Model<UserAttributes, Optional<UserAttributes, "id">>
+  extends Model<UserAttributes, UserCreationAttributes>
   implements UserAttributes
 {
   public id!: number;
   public username!: string;
-  public firstname: string;
-  public lastname: string;
+  public profile!: ProfileAttributes;
   public email!: string;
-  public password!: string;
+  public password?: string;
+  public avatar?: Buffer;
   public avatarImage?: string;
-  public role!: "user" | "operator";
   public isEmployee!: boolean;
+  public role!: "user" | "operator";
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
+  public lastLoginAt?: Date;
 }
 
 User.init(
@@ -48,13 +53,10 @@ User.init(
       type: DataTypes.STRING,
       allowNull: false,
     },
-    firstname: {
-      type: DataTypes.STRING,
+    profile: {
+      type: DataTypes.JSON,
       allowNull: false,
-    },
-    lastname: {
-        type: DataTypes.STRING,
-        allowNull: false,
+      defaultValue: {},
     },
     email: {
       type: DataTypes.STRING,
@@ -69,15 +71,22 @@ User.init(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    avatar: {
+      type: DataTypes.BLOB,
+      allowNull: true,
+    },
     isEmployee: {
       type: DataTypes.BOOLEAN,
-      allowNull: false,
       defaultValue: false,
     },
     role: {
       type: DataTypes.STRING,
       allowNull: false,
       defaultValue: "user",
+    },
+    lastLoginAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
     },
   },
   {

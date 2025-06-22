@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import bcrypt from 'bcrypt';
 import { User } from "../models/user.model";
 import {
   passwordHash,
@@ -11,28 +12,26 @@ const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
   password: z.string().min(8, "Please enter a valid password"),
 });
+
 const registerSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters long"),
-  email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters long"),
+  email: z.string().email("Please provide a valid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters long"),
   firstname: z.string().min(1, "First name is required"),
   lastname: z.string().min(1, "Last name is required"),
-  operatorCode: z.string().optional(),
-});
+  operatorCode: z.string().optional(), // Optional: only for operator registration
+}).strip();
 
-/**
- * Logs a user in with the given email and password.
- * If the user is found and the password is valid, a JWT token is returned
- * with the user's id, username, email, and role in the response body.
- * @param req Express request object
- * @param res Express response object
- */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = loginSchema.parse(req.body);
     const user = await User.findOne({ where: { email } });
     if (!user) {
       res.status(404).json({ message: "User not found" });
+      return;
+    }
+    if (!user.password) {
+      res.status(401).json({ message: "email or password is invalid, please try again" });
       return;
     }
     const isPasswordValid = await passwordCompare(password, user.password);
@@ -42,6 +41,8 @@ export const login = async (req: Request, res: Response): Promise<void> => {
         .json({ message: "email or password is invalid, please try again" });
       return;
     }
+    user.lastLoginAt = new Date();
+    await user.save();
     const token = TokenGenerator(user);
     res
       .status(200)
@@ -60,41 +61,52 @@ export const login = async (req: Request, res: Response): Promise<void> => {
     res.status(400).json({ message: errorMessage });
   }
 };
-/**
- * Registers a new user with the given details. If the email address is already associated with an account, a 409 Conflict status code is returned.
- * If the operatorCode matches the OPERATOR_CODE environment variable, the role is set to "operator", otherwise it is set to "user".
- * On success, a 201 Created status code is returned with the user's JWT and a JSON object containing their id, username, email, and role.
- * @param req Express request object
- * @param res Express response object
- */
+
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { username, email, password, firstname, lastname, operatorCode } =
-      registerSchema.parse(req.body);
+    const validation = registerSchema.safeParse(req.body);
+    if (!validation.success) {
+      res.status(400).json({ 
+        message: 'Invalid input.', 
+        errors: validation.error.errors 
+      });
+      return;
+    }
+
+    const { username, email, password, operatorCode, firstname, lastname } = validation.data;
     const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       res
         .status(409)
         .json({
-          message: "Account assiociated with this email already exists",
+          message: "Account associated with this email already exists",
         });
       return;
     }
 
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     let role: "user" | "operator" = "user";
-    if (operatorCode && operatorCode === process.env.OPERATOR_CODE) {
-      role = "operator";
+    if (operatorCode) {
+      if (operatorCode === process.env.OPERATOR_SECRET_CODE) {
+        role = "operator";
+      } else {
+        res.status(403).json({ message: "Invalid operator code" });
+        return;
+      }
     }
 
-    const hashedPassword = await passwordHash(password);
     const newUser = await User.create({
       username,
       email,
       password: hashedPassword,
-      firstname,
-      lastname,
       role,
       isEmployee: role === "operator",
+      profile: {
+        firstName: firstname,
+        lastName: lastname,
+      },
     });
     const token = TokenGenerator(newUser);
     res
@@ -119,6 +131,6 @@ export const logout = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // Invalidate the token on the client side
+
   res.status(200).json({ message: "Logged out successfully" });
 }
