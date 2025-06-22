@@ -1,6 +1,13 @@
 import { Request, Response } from 'express';
+import { z } from 'zod';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { ChatRoom, ChatParticipant, Hotel, Message, User } from '../models';
+
+// Zod schema to validate message payloads
+const messageSchema = z.object({
+  content: z.string().min(1, 'Content is required'),
+  senderId: z.number(),
+});
 
 export const createChatRoomWithOffer = async (
   req: AuthenticatedRequest,
@@ -27,8 +34,8 @@ export const createChatRoomWithOffer = async (
     let chatRoom = await ChatRoom.findByPk(chatRoomId, {
       include: [
         { model: Hotel, as: 'hotel', attributes: ['place_id', 'name', 'formatted_address'] },
-        { model: User, as: 'participants', attributes: ['username', 'email', 'avatarImage', 'profile', 'role'] },
-        { model: Message, as: 'messages', order: [['createdAt', 'ASC']] },
+        { model: User, as: 'participants', attributes: ['id', 'username', 'email', 'avatarImage', 'profile', 'role'] },
+        { model: Message, as: 'messages', order: [['createdAt', 'ASC']], include: [{ model: User, as: 'sender', attributes: ['id', 'email', 'username', 'avatarImage', 'role'] }] },
       ],
     });
 
@@ -56,8 +63,8 @@ export const createChatRoomWithOffer = async (
       chatRoom = await ChatRoom.findByPk(chatRoomId, {
         include: [
           { model: Hotel, as: 'hotel', attributes: ['place_id', 'name', 'formatted_address'] },
-          { model: User, as: 'participants', attributes: ['username', 'email', 'avatarImage', 'profile', 'role'] },
-          { model: Message, as: 'messages', order: [['createdAt', 'ASC']] },
+          { model: User, as: 'participants', attributes: ['id', 'username', 'email', 'avatarImage', 'profile', 'role'] },
+          { model: Message, as: 'messages', order: [['createdAt', 'ASC']], include: [{ model: User, as: 'sender', attributes: ['id', 'email', 'username', 'avatarImage', 'role'] }] },
         ],
       });
     }
@@ -82,9 +89,9 @@ export const getChatRoomsForUser = async (
 
     const chatRooms = await ChatRoom.findAll({
       include: [
-        { model: User, as: 'participants', where: { id: currentUser.id }, attributes: ['username', 'email', 'avatarImage', 'profile', 'role'] },
+        { model: User, as: 'participants', where: { id: currentUser.id }, attributes: ['id', 'username', 'email', 'avatarImage', 'profile', 'role'] },
         { model: Hotel, as: 'hotel', attributes: ['place_id', 'name', 'formatted_address'] },
-        { model: Message, as: 'messages', order: [['createdAt', 'DESC']], limit: 1 },
+        { model: Message, as: 'messages', order: [['createdAt', 'DESC']], limit: 1, include: [{ model: User, as: 'sender', attributes: ['id', 'email'] }] },
       ],
       order: [['updatedAt', 'DESC']],
     });
@@ -103,8 +110,8 @@ export const getChatRoomById = async (
     const chatRoom = await ChatRoom.findByPk(chatRoomId, {
       include: [
         { model: Hotel, as: 'hotel', attributes: ['place_id', 'name', 'formatted_address'] },
-        { model: User, as: 'participants', attributes: ['username', 'email', 'avatarImage', 'profile', 'role'] },
-        { model: Message, as: 'messages', order: [['createdAt', 'ASC']] },
+        { model: User, as: 'participants', attributes: ['id', 'username', 'email', 'avatarImage', 'profile', 'role'] },
+        { model: Message, as: 'messages', order: [['createdAt', 'ASC']], include: [{ model: User, as: 'sender', attributes: ['id', 'email', 'username', 'avatarImage', 'role'] }] },
       ],
     });
     if (!chatRoom) {
@@ -123,9 +130,16 @@ export const sendMessage = async (
 ): Promise<void> => {
   try {
     const { chatRoomId } = req.params;
-    const { content } = req.body;
-    if (!content) {
-      res.status(400).json({ message: 'Content is required' });
+    const validation = messageSchema.safeParse(req.body);
+    if (!validation.success) {
+      res.status(400).json({ message: 'Invalid input', errors: validation.error.errors });
+      return;
+    }
+    const { content, senderId } = validation.data;
+
+    // senderId must match authenticated user
+    if (senderId !== req.user?.id) {
+      res.status(403).json({ message: 'senderId mismatch with authenticated user' });
       return;
     }
 
@@ -146,11 +160,16 @@ export const sendMessage = async (
       }
     }
 
-    const message = await Message.create({
+    const newMessage = await Message.create({
       id: `msg_${Date.now()}`,
       chatRoomId,
-      senderId: currentUser.id,
+      senderId,
       content,
+    });
+
+    // reload with sender association to include email
+    const message = await Message.findByPk(newMessage.id, {
+      include: [{ model: User, as: 'sender', attributes: ['id', 'email', 'username', 'avatarImage', 'role'] }],
     });
 
   
@@ -170,8 +189,8 @@ export const getAllChatRooms = async (
     const rooms = await ChatRoom.findAll({
       include: [
         { model: Hotel, as: 'hotel', attributes: ['place_id', 'name', 'formatted_address'] },
-        { model: User, as: 'participants', attributes: ['username', 'email', 'avatarImage', 'profile', 'role'] },
-        { model: Message, as: 'messages', order: [['createdAt', 'DESC']], limit: 1 },
+        { model: User, as: 'participants', attributes: ['id', 'username', 'email', 'avatarImage', 'profile', 'role'] },
+        { model: Message, as: 'messages', order: [['createdAt', 'DESC']], limit: 1, include: [{ model: User, as: 'sender', attributes: ['id', 'email'] }] },
       ],
       order: [['updatedAt', 'DESC']],
     });

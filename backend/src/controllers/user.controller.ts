@@ -39,6 +39,14 @@ const updateUserProfileSchema = z.object({
 
 
 
+export const getUserId = (req: AuthenticatedRequest, res: Response): void => {
+  if (!req.user) {
+    res.status(401).json({ message: 'Not authenticated' });
+    return;
+  }
+  res.status(200).json({ id: req.user.id });
+};
+
 export const getUserRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const userId = req.user?.id;
