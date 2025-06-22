@@ -4,8 +4,9 @@ import morgan from 'morgan';
 import helmet from 'helmet';
 import cors from 'cors';
 import {connectionTest} from './config/db.config';
-import authRoutes from './routes/auth';
-import userRoutes from './routes/user';
+import authRouter from './routes/auth';
+import userRouter from './routes/user';
+import hotelRouter from './routes/hotel';
 
 
 const createApp = () => {
@@ -18,8 +19,9 @@ const createApp = () => {
 
   connectionTest();
 
-  app.use('/api/auth', authRoutes);
-  app.use('/api/user', userRoutes);
+  app.use('/api/auth', authRouter);
+  app.use('/api/user', userRouter);
+  app.use('/api/hotel', hotelRouter);
 
   app.get('/', (req, res) => {
     res.send('Hello!');

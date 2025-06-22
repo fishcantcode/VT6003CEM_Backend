@@ -1,5 +1,13 @@
 import { Router } from 'express';
-import { getUserProfile, updateUserProfile, uploadAvatar, userConnectionTest, getAvatar } from '../controllers/user.controller';
+import { 
+  getUserProfile, 
+  updateUserProfile, 
+  uploadAvatar, 
+  userConnectionTest, 
+  getAvatar, 
+  getUserRole,
+
+} from '../controllers/user.controller';
 import { authenticateToken } from '../middlewares/auth.middleware';
 import upload from '../middlewares/upload.middleware';
 
@@ -15,5 +23,9 @@ router.put('/profile', authenticateToken, updateUserProfile);
 router.post('/avatar', authenticateToken, upload.single('avatar'), uploadAvatar);
 
 router.get('/avatar', authenticateToken, getAvatar);
+
+router.get('/role', authenticateToken, getUserRole);
+
+ 
 
 export default router;

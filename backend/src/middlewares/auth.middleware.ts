@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { TokenVerifier } from '../services/auth.service';
-import { User, UserAttributes } from '../models/user.model';
+import { User, UserAttributes } from '../models';
 
 declare global {
   namespace Express {
@@ -16,7 +16,7 @@ export interface AuthenticatedRequest extends Request {
 
 export const authenticateToken = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1]; // Expect "Bearer <token>"
+  const token = authHeader && authHeader.split(' ')[1]; 
 
   if (!token) {
     res.status(401).json({ message: 'No token provided' });
@@ -34,7 +34,7 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
         res.status(404).json({ message: 'User not found' });
         return;
     }
-    req.user = user; // Attach user instance to request object
+    req.user = user; 
     next();
   } catch (error) {
     res.status(403).json({ message: 'Invalid or expired token' });
@@ -42,14 +42,13 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
   }
 };
 
-// Role validation middleware
 export const requireRole = (role: 'user' | 'operator') => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return res.status(401).json({ message: 'Not authenticated' });
     }
     if (req.user.role === 'operator'){
-        return next(); // Allow operators to access everything
+        return next(); 
     }
     if (req.user.role !== role) {
       return res.status(403).json({ message: `Access denied. ` });

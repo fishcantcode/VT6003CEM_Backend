@@ -1,5 +1,7 @@
 import { Sequelize } from "sequelize";
 
+//test only
+
 const sequelize = new Sequelize(
   process.env.PGDATABASE as string,
   process.env.PGUSER as string,

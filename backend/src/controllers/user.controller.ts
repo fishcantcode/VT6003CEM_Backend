@@ -1,7 +1,7 @@
 import { Response, Request } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { z } from 'zod';
-import { User } from "../models/user.model";
+import { User, Hotel } from '../models';
 
  
 export const userConnectionTest = (req: Request, res: Response) => {
@@ -36,6 +36,26 @@ const updateUserProfileSchema = z.object({
     bio: z.string().optional(),
   }),
 });
+
+
+
+export const getUserRole = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Authentication error.' });
+      return;
+    }
+    const user = await User.findByPk(userId);
+    if (!user) {
+      res.status(404).json({ message: 'User not found.' });
+      return;
+    }
+    res.status(200).json({ role: user.role });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.', error });
+  }
+};
 
 export const getAvatar = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {

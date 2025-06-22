@@ -4,8 +4,22 @@ services:
     container_name: vt6003cem_backend
     ports:
       - "3000:3000"
-    env_file:
-      - ./backend/.env
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=vt6003cem
+      - DB_USER=postgres
+      - DB_PASSWORD=1234567
+      - NODE_ENV=development
+      - PORT=3000
+      - JWT_SECRET=f4b3e2a1c0d9e8f7a6b5c4d3e2f1a0b9c8d7e6f5a4b3c2d1e0f9a8b7c6d5e4f3
+      - JWT_EXPIRES_IN=24h
+      - OPERATOR_SIGNUP_CODE=OPERATOR-A1B2C3D4E5F6A7B8
+      - SALTROUND=10
+    volumes:
+      - ./backend:/usr/src/app
+      - /usr/src/app/node_modules
+    command: npm run dev
     depends_on:
       db:
         condition: service_healthy

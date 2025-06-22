@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import bcrypt from 'bcrypt';
-import { User } from "../models/user.model";
+import { User } from '../models';
 import {
   passwordHash,
   passwordCompare,
@@ -101,7 +101,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
 
     let role: "user" | "operator" = "user";
     if (operatorCode) {
-      if (operatorCode === process.env.OPERATOR_SECRET_CODE) {
+      if (operatorCode === process.env.OPERATOR_SIGNUP_CODE) {
         role = "operator";
       } else {
         res.status(403).json({ message: "Invalid operator code" });

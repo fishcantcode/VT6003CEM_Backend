@@ -1,5 +1,6 @@
-import { DataTypes, Model, Optional } from "sequelize";
-import { sequelize } from "../config/db.config";
+import { DataTypes, Model, Optional, HasManyAddAssociationMixin, HasManyRemoveAssociationMixin, HasManyGetAssociationsMixin } from "sequelize";
+import { sequelize } from "../config/database";
+import { Hotel } from './hotel.model';
 
 interface ProfileAttributes {
   firstName?: string;
@@ -40,6 +41,13 @@ export class User
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
   public lastLoginAt?: Date;
+
+ 
+  public favoriteHotels?: Hotel[];
+
+  public getFavoriteHotels!: HasManyGetAssociationsMixin<Hotel>;
+  public addFavoriteHotel!: HasManyAddAssociationMixin<Hotel, number>;
+  public removeFavoriteHotel!: HasManyRemoveAssociationMixin<Hotel, number>;
 }
 
 User.init(
