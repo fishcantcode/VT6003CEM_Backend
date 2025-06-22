@@ -5,7 +5,7 @@ import helmet from 'helmet';
 import cors from 'cors';
 import {connectionTest} from './config/db.config';
 import authRoutes from './routes/auth';
-
+import userRoutes from './routes/user';
 
 
 const createApp = () => {
@@ -18,8 +18,8 @@ const createApp = () => {
 
   connectionTest();
 
-  // Routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/user', userRoutes);
 
   app.get('/', (req, res) => {
     res.send('Hello!');

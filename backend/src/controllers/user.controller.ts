@@ -1,7 +1,12 @@
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { AuthenticatedRequest } from '../middlewares/auth.middleware';
 import { z } from 'zod';
 import { User } from "../models/user.model";
+
+ 
+export const userConnectionTest = (req: Request, res: Response) => {
+  res.json({ status: 'ok', message: 'User controller connection successful' });
+};
 
 export const getUserProfile = async (
   req: AuthenticatedRequest,
@@ -10,7 +15,7 @@ export const getUserProfile = async (
     try {
         const userId = req.user?.id;
         const user = await User.findByPk(userId, {
-            attributes: { exclude: ["password"] }, // Exclude password from the response
+            attributes: { exclude: ["password"] }, 
         });
         if (!user) {
             res.status(404).json({ message: "User not found" });
@@ -31,6 +36,25 @@ const updateUserProfileSchema = z.object({
     bio: z.string().optional(),
   }),
 });
+
+export const getAvatar = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      res.status(401).json({ message: 'Authentication error.' });
+      return;
+    }
+    const user = await User.findByPk(userId);
+    if (!user || !user.avatar) {
+      res.status(404).json({ message: 'Avatar not found.' });
+      return;
+    }
+    res.set('Content-Type', 'image/png');
+    res.send(user.avatar);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.', error });
+  }
+};
 
 export const uploadAvatar = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -81,10 +105,7 @@ export const updateUserProfile = async (req: AuthenticatedRequest, res: Response
     }
 
     if (profile) {
-      user.profile.firstName = profile.firstName ?? user.profile.firstName;
-      user.profile.lastName = profile.lastName ?? user.profile.lastName;
-      user.profile.bio = profile.bio ?? user.profile.bio;
-      
+      user.profile = { ...user.profile, ...profile };
     }
 
     await user.save();

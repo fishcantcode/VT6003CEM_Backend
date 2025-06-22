@@ -8,9 +8,17 @@ import {
 } from "../services/auth.service";
 import { z } from "zod";
 
+export const authConnectionTest = (req: Request, res: Response) => {
+  res.json({ status: 'ok', message: 'Auth controller connection successful' });
+};
+
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
+  email: z.string().optional(),
+  username: z.string().optional(),
   password: z.string().min(8, "Please enter a valid password"),
+}).refine(data => data.email || data.username, {
+  message: "Either email or username must be provided",
+  path: ["email"]
 });
 
 const registerSchema = z.object({
@@ -19,15 +27,19 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters long"),
   firstname: z.string().min(1, "First name is required"),
   lastname: z.string().min(1, "Last name is required"),
-  operatorCode: z.string().optional(), // Optional: only for operator registration
+  operatorCode: z.string().optional(), 
 }).strip();
 
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
-    const user = await User.findOne({ where: { email } });
+    const { email, username, password } = loginSchema.parse(req.body);
+    
+ 
+    const whereClause = email ? { email } : { username };
+    const user = await User.findOne({ where: whereClause });
+    
     if (!user) {
-      res.status(404).json({ message: "User not found" });
+      res.status(401).json({ message: "Invalid credentials" });
       return;
     }
     if (!user.password) {
