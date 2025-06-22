@@ -43,16 +43,22 @@ export const authenticateToken = async (req: Request, res: Response, next: NextF
 };
 
 export const requireRole = (role: 'user' | 'operator') => {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     if (!req.user) {
-      return res.status(401).json({ message: 'Not authenticated' });
+      res.status(401).json({ message: 'Not authenticated' });
+      return;
     }
-    if (req.user.role === 'operator'){
-        return next(); 
+
+    if (req.user.role === 'operator') {
+      next();
+      return;
     }
+
     if (req.user.role !== role) {
-      return res.status(403).json({ message: `Access denied. ` });
+      res.status(403).json({ message: 'Access denied.' });
+      return;
     }
+
     next();
   };
 };

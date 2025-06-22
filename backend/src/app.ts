@@ -7,6 +7,7 @@ import {connectionTest} from './config/db.config';
 import authRouter from './routes/auth';
 import userRouter from './routes/user';
 import hotelRouter from './routes/hotel';
+import chatRouter from './routes/chat';
 
 
 const createApp = () => {
@@ -22,6 +23,7 @@ const createApp = () => {
   app.use('/api/auth', authRouter);
   app.use('/api/user', userRouter);
   app.use('/api/hotel', hotelRouter);
+  app.use('/api/chat', chatRouter);
 
   app.get('/', (req, res) => {
     res.send('Hello!');

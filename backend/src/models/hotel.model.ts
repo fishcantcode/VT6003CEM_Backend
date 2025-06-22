@@ -15,6 +15,7 @@ interface HotelAttributes {
   name: string;
   place_id: string;
   rating: number;
+  userId?: number;
   user_ratings_total: number;
   compound_code?: string;
   vicinity?: string;
@@ -39,6 +40,7 @@ class Hotel extends Model<HotelAttributes, HotelInput> implements HotelAttribute
   public name!: string;
   public place_id!: string;
   public rating!: number;
+  public userId!: number | undefined;
   public user_ratings_total!: number;
   public compound_code!: string | undefined;
   public vicinity!: string | undefined;
@@ -76,6 +78,15 @@ Hotel.init(
     rating: {
       type: DataTypes.FLOAT,
       allowNull: false,
+    },
+    userId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: 'users',
+        key: 'id',
+      },
+      field: 'user_id',
     },
     user_ratings_total: {
       type: DataTypes.INTEGER,
