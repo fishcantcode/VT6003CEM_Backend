@@ -1,4 +1,4 @@
-# Hotel Booking API Backend (Docker Setup)
+# Hotel Booking API Backend
 
 ## Project Overview
 A containerized backend service for a hotel booking platform, built with Node.js, Express, and TypeScript. This API provides authentication, user management, and hotel booking functionality.
